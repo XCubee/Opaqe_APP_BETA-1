@@ -231,9 +231,9 @@ const LoginScreen = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Join Opaque, Level Up!</Text>
+        <Text style={styles.title}>Welcome to OPAQÉ</Text>
         <Text style={styles.subtitle}>
-          Let's set up your profile to connect with the best hackathon teams.
+          Let's set up your profile to connect with the best hackathon teams out there.
         </Text>
 
         {/* Email/Password Form */}
