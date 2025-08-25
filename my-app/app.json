@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "OPAQÉ",
-    "slug": "OPAQÉ",
+    "slug": "opaqe",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/opaqe_logi.jpg",
@@ -37,6 +37,18 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "3d851f87-27be-4e56-9336-6a246014f955"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/3d851f87-27be-4e56-9336-6a246014f955"
     }
   }
 }
