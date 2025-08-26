@@ -35,13 +35,13 @@ interface UserProfile {
   created_at: string;
 }
 
-interface TeamInvitation {
+interface FriendRequest {
   id: string;
-  teamName: string;
-  invitedBy: string;
-  description: string;
-  requiredSkills: string[];
-  teamIcon: string;
+  username: string;
+  fullName: string;
+  bio: string;
+  skills: string[];
+  avatar: string;
 }
 
 interface Hackathon {
@@ -50,6 +50,8 @@ interface Hackathon {
   date: string;
   location: string;
   banner: string;
+  registered?: boolean;
+  teamName?: string;
 }
 
 interface Person {
@@ -78,47 +80,38 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   const [activeTab, setActiveTab] = useState('home');
+  const [showHackathonOptions, setShowHackathonOptions] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const [countdown, setCountdown] = useState({
     days: 7,
     hours: 14,
     minutes: 32,
     seconds: 51
   });
+  const [friendCount, setFriendCount] = useState(0);
 
-  // Mock data for demonstration - in real app, this would come from Supabase
-  const [teamInvitations] = useState<TeamInvitation[]>([
-    {
-      id: '1',
-      teamName: 'CodeCrafters Assemble',
-      invitedBy: 'Alex Johnson',
-      description: "Hey! We're looking for a skilled backend developer to join our team for the upcoming FinTech Innovations hackathon.",
-      requiredSkills: ['Backend', 'Node.js', 'MongoDB', 'APIs'],
-      teamIcon: '👨‍💻'
-    },
-    {
-      id: '2',
-      teamName: 'Pixel Pioneers',
-      invitedBy: 'Maria Garcia',
-      description: 'Our UI/UX team needs a visionary designer for the Sustainable Tech Challenge. Are you interested?',
-      requiredSkills: ['UI/UX', 'Figma', 'Prototyping', 'User Research'],
-      teamIcon: '🎨'
-    }
-  ]);
+  // Real data from Supabase - initially empty
+  const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
 
+  // Empty registered hackathons since user hasn't registered for any
+  const [registeredHackathons, setRegisteredHackathons] = useState<Hackathon[]>([]);
+  
   const [upcomingHackathons] = useState<Hackathon[]>([
-    {
-      id: '1',
-      name: 'Global AI Innovators Summit',
-      date: 'Nov 15-17, 2024',
-      location: 'Virtual & New York',
-      banner: '🌍'
-    },
     {
       id: '2',
       name: 'Future of Healthcare Hackathon',
       date: 'Dec 2-4, 2024',
       location: 'London, UK',
-      banner: '🏥'
+      banner: '🏥',
+      registered: false
+    },
+    {
+      id: '3',
+      name: 'Sustainable Tech Challenge',
+      date: 'Jan 10-12, 2025',
+      location: 'San Francisco, CA',
+      banner: '🌱',
+      registered: false
     }
   ]);
 
@@ -149,6 +142,8 @@ export default function Home() {
 
   useEffect(() => {
     getUser();
+    fetchFriendRequests();
+    fetchFriendCount();
   }, []);
 
   useEffect(() => {
@@ -207,16 +202,66 @@ export default function Home() {
     }
   }
 
-  const handleAcceptInvitation = (invitationId: string) => {
-    // In real app, this would update the database
-    console.log('Accepted invitation:', invitationId);
-    // Remove from list or mark as accepted
+  const fetchFriendRequests = async () => {
+    try {
+      if (!user) return;
+      
+      const { data, error } = await supabase
+        .from('friend_requests')
+        .select('*')
+        .eq('recipient_id', user.id)
+        .eq('status', 'pending');
+        
+      if (error) {
+        console.error('Error fetching friend requests:', error);
+      } else {
+        // Transform the data to match our FriendRequest interface
+        const requests = data.map(request => ({
+          id: request.id,
+          username: request.sender_username || '',
+          fullName: request.sender_name || '',
+          bio: request.sender_bio || '',
+          skills: request.sender_skills || [],
+          avatar: '👤' // Default avatar
+        }));
+        setFriendRequests(requests);
+      }
+    } catch (error) {
+      console.error('Error fetching friend requests:', error);
+    }
   };
 
-  const handleDeclineInvitation = (invitationId: string) => {
+  const fetchFriendCount = async () => {
+    try {
+      if (!user) return;
+      
+      const { data, error } = await supabase
+        .from('friends')
+        .select('*')
+        .eq('user_id', user.id);
+        
+      if (error) {
+        console.error('Error fetching friends count:', error);
+      } else {
+        setFriendCount(data.length);
+      }
+    } catch (error) {
+      console.error('Error fetching friends count:', error);
+    }
+  };
+
+  const handleAcceptFriendRequest = (requestId: string) => {
     // In real app, this would update the database
-    console.log('Declined invitation:', invitationId);
-    // Remove from list or mark as declined
+    console.log('Accepted friend request:', requestId);
+    // Remove from list or mark as accepted
+    setFriendRequests(prev => prev.filter(request => request.id !== requestId));
+  };
+
+  const handleDeclineFriendRequest = (requestId: string) => {
+    // In real app, this would update the database
+    console.log('Declined friend request:', requestId);
+    // Remove from list
+    setFriendRequests(prev => prev.filter(request => request.id !== requestId));
   };
 
   const handleConnect = (personId: string) => {
@@ -250,18 +295,18 @@ export default function Home() {
     router.push('/profile');
   };
 
-  const renderTeamInvitation = ({ item }: { item: TeamInvitation }) => (
+  const renderFriendRequest = ({ item }: { item: FriendRequest }) => (
     <View style={styles.invitationCard}>
       <View style={styles.invitationHeader}>
-        <Text style={styles.teamIcon}>{item.teamIcon}</Text>
+        <Text style={styles.teamIcon}>{item.avatar}</Text>
         <View style={styles.invitationInfo}>
-          <Text style={styles.teamName}>{item.teamName}</Text>
-          <Text style={styles.invitedBy}>Invited by {item.invitedBy}</Text>
+          <Text style={styles.teamName}>{item.fullName}</Text>
+          <Text style={styles.invitedBy}>@{item.username}</Text>
         </View>
       </View>
-      <Text style={styles.invitationDescription}>{item.description}</Text>
+      <Text style={styles.invitationDescription}>{item.bio}</Text>
       <View style={styles.skillsContainer}>
-        {item.requiredSkills.map((skill, index) => (
+        {item.skills.map((skill, index) => (
           <View key={index} style={styles.skillTag}>
             <Text style={styles.skillTagText}>{skill}</Text>
           </View>
@@ -270,13 +315,13 @@ export default function Home() {
       <View style={styles.invitationActions}>
         <TouchableOpacity 
           style={styles.declineButton}
-          onPress={() => handleDeclineInvitation(item.id)}
+          onPress={() => handleDeclineFriendRequest(item.id)}
         >
           <Text style={styles.declineButtonText}>Decline</Text>
         </TouchableOpacity>
         <TouchableOpacity 
           style={styles.acceptButton}
-          onPress={() => handleAcceptInvitation(item.id)}
+          onPress={() => handleAcceptFriendRequest(item.id)}
         >
           <Text style={styles.acceptButtonText}>Accept</Text>
         </TouchableOpacity>
@@ -300,14 +345,30 @@ export default function Home() {
             <MaterialIcons name="location-on" size={16} color="#4A5568" />
             <Text style={styles.detailText}>{item.location}</Text>
           </View>
+          {item.registered && item.teamName && (
+            <View style={styles.detailRow}>
+              <AntDesign name="team" size={16} color="#4A5568" />
+              <Text style={styles.detailText}>Team: {item.teamName}</Text>
+            </View>
+          )}
         </View>
-        <TouchableOpacity 
-          style={styles.registerButton}
-          onPress={() => handleRegisterHackathon(item.id)}
-        >
-          <Text style={styles.registerButtonText}>Register</Text>
-          <AntDesign name="arrowright" size={16} color="#FFFFFF" />
-        </TouchableOpacity>
+        {!item.registered ? (
+          <TouchableOpacity 
+            style={styles.registerButton}
+            onPress={() => handleJoinHackathon(item.id)}
+          >
+            <Text style={styles.registerButtonText}>Register</Text>
+            <AntDesign name="arrowright" size={16} color="#FFFFFF" />
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity 
+            style={styles.viewDetailsButton}
+            onPress={() => console.log('View hackathon details:', item.id)}
+          >
+            <Text style={styles.viewDetailsButtonText}>View Details</Text>
+            <AntDesign name="arrowright" size={16} color="#007AFF" />
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -380,39 +441,255 @@ export default function Home() {
     );
   }
 
+  const toggleDarkMode = () => {
+    setIsDarkMode(prev => !prev);
+    // In a real app, this would update the app's theme
+  };
+
+  const handleCreateHackathon = async () => {
+    setShowHackathonOptions(false);
+    
+    // In a real app, this would navigate to a form first
+    // For now, we'll create a sample hackathon directly
+    if (!user) return;
+    
+    try {
+      const newHackathon = {
+        name: 'New Hackathon ' + Math.floor(Math.random() * 1000),
+        date: 'Dec 15-17, 2024',
+        location: 'Virtual',
+        banner: '🚀',
+        created_by: user.id,
+        created_at: new Date().toISOString()
+      };
+      
+      const { data, error } = await supabase
+        .from('hackathons')
+        .insert(newHackathon)
+        .select();
+        
+      if (error) {
+        console.error('Error creating hackathon:', error);
+      } else {
+        console.log('Hackathon created successfully:', data);
+        // Refresh the hackathons list
+        fetchUpcomingHackathons();
+      }
+    } catch (error) {
+      console.error('Error creating hackathon:', error);
+    }
+  };
+
+  const handleJoinHackathon = async (hackathonId = null) => {
+    setShowHackathonOptions(false);
+    
+    if (!user) return;
+    if (!hackathonId) {
+      console.log('Navigate to Join Hackathon form');
+      return;
+    }
+    
+    try {
+      const registration = {
+        user_id: user.id,
+        hackathon_id: hackathonId,
+        team_name: 'Solo Team',
+        registered_at: new Date().toISOString()
+      };
+      
+      const { data, error } = await supabase
+        .from('hackathon_registrations')
+        .insert(registration)
+        .select();
+        
+      if (error) {
+        console.error('Error registering for hackathon:', error);
+      } else {
+        console.log('Registered for hackathon successfully:', data);
+        // Refresh the hackathons lists
+        fetchRegisteredHackathons();
+        fetchUpcomingHackathons();
+      }
+    } catch (error) {
+      console.error('Error registering for hackathon:', error);
+    }
+  };
+  
+  const fetchRegisteredHackathons = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('hackathon_registrations')
+        .select(`
+          *,
+          hackathons:hackathon_id (*)
+        `)
+        .eq('user_id', user.id);
+        
+      if (error) {
+        console.error('Error fetching registered hackathons:', error);
+      } else {
+        const hackathons = data.map(reg => ({
+          id: reg.hackathons.id,
+          name: reg.hackathons.name,
+          date: reg.hackathons.date,
+          location: reg.hackathons.location,
+          banner: reg.hackathons.banner || '🏆',
+          registered: true,
+          teamName: reg.team_name
+        }));
+        setRegisteredHackathons(hackathons);
+      }
+    } catch (error) {
+      console.error('Error fetching registered hackathons:', error);
+    }
+  };
+  
+  const fetchUpcomingHackathons = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('hackathons')
+        .select('*')
+        .order('date', { ascending: true })
+        .limit(5);
+        
+      if (error) {
+        console.error('Error fetching upcoming hackathons:', error);
+      } else {
+        // Check which ones the user is registered for
+        if (user) {
+          const { data: registrations, error: regError } = await supabase
+            .from('hackathon_registrations')
+            .select('hackathon_id, team_name')
+            .eq('user_id', user.id);
+            
+          if (!regError && registrations) {
+            const registeredIds = registrations.reduce((acc, reg) => {
+              acc[reg.hackathon_id] = reg.team_name;
+              return acc;
+            }, {});
+            
+            const hackathons = data.map(h => ({
+              id: h.id,
+              name: h.name,
+              date: h.date,
+              location: h.location,
+              banner: h.banner || '🏆',
+              registered: registeredIds[h.id] ? true : false,
+              teamName: registeredIds[h.id] || undefined
+            }));
+            
+            setUpcomingHackathons(hackathons);
+          }
+        } else {
+          const hackathons = data.map(h => ({
+            id: h.id,
+            name: h.name,
+            date: h.date,
+            location: h.location,
+            banner: h.banner || '🏆',
+            registered: false
+          }));
+          
+          setUpcomingHackathons(hackathons);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching upcoming hackathons:', error);
+    }
+  };
+
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, isDarkMode && styles.darkModeSafeArea]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, isDarkMode && styles.darkModeHeader]}>
         <View style={styles.headerTop}>
-          <Text style={styles.welcomeText}>
+          <Text style={[styles.welcomeText, isDarkMode && styles.darkModeText]}>
             Welcome back, {userProfile?.username || user?.email?.split('@')[0] || 'Hacker'}! 👋
           </Text>
-          <TouchableOpacity style={styles.profileButton} onPress={handleProfilePress}>
-            <Text style={styles.profileButtonText}>
-              {userProfile?.username?.charAt(0) || user?.email?.charAt(0) || 'U'}
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity style={styles.darkModeToggle} onPress={toggleDarkMode}>
+              <Ionicons name={isDarkMode ? "sunny-outline" : "moon-outline"} size={24} color={isDarkMode ? "#FFFFFF" : "#1A202C"} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.profileButton} onPress={handleProfilePress}>
+              <Text style={styles.profileButtonText}>
+                {userProfile?.username?.charAt(0) || user?.email?.charAt(0) || 'U'}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
+      
+      {/* Hackathon Options Modal */}
+      {showHackathonOptions && (
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContainer, isDarkMode && styles.darkModeModal]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, isDarkMode && styles.darkModeText]}>Hackathon Options</Text>
+              <TouchableOpacity onPress={() => setShowHackathonOptions(false)}>
+                <AntDesign name="close" size={24} color={isDarkMode ? "#FFFFFF" : "#1A202C"} />
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity 
+              style={[styles.modalOption, isDarkMode && styles.darkModeModalOption]} 
+              onPress={handleCreateHackathon}
+            >
+              <AntDesign name="plus" size={24} color={isDarkMode ? "#FFFFFF" : "#1A202C"} />
+              <Text style={[styles.modalOptionText, isDarkMode && styles.darkModeText]}>Create a Hackathon</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.modalOption, isDarkMode && styles.darkModeModalOption]} 
+              onPress={handleJoinHackathon}
+            >
+              <AntDesign name="team" size={24} color={isDarkMode ? "#FFFFFF" : "#1A202C"} />
+              <Text style={[styles.modalOptionText, isDarkMode && styles.darkModeText]}>Join a Hackathon as Team</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
    
-
-        {/* Team Invitations */}
+        {/* Friend Requests Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Team Invitations</Text>
-          <FlatList
-            data={teamInvitations}
-            renderItem={renderTeamInvitation}
-            keyExtractor={(item) => item.id}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.horizontalList}
-          />
+          <Text style={styles.sectionTitle}>Friend Requests</Text>
+          {friendRequests.length > 0 ? (
+            <FlatList
+              data={friendRequests}
+              renderItem={renderFriendRequest}
+              keyExtractor={(item) => item.id}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalList}
+            />
+          ) : (
+            <View style={styles.emptyStateContainer}>
+              <Text style={styles.emptyStateText}>Requests empty</Text>
+            </View>
+          )}
         </View>
 
-        {/* Upcoming Hackathons */}
+        {/* Registered Hackathons */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Your Registered Hackathons</Text>
+          {registeredHackathons.length > 0 ? (
+            <FlatList
+              data={registeredHackathons}
+              renderItem={renderHackathon}
+              keyExtractor={(item) => item.id}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalList}
+            />
+          ) : (
+            <View style={styles.emptyStateContainer}>
+              <Text style={styles.emptyStateText}>No registered hackathons</Text>
+            </View>
+          )}
+        </View>
+        
+        {/* Upcoming Hackathons Feed */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Upcoming Hackathons</Text>
           <FlatList
@@ -425,18 +702,7 @@ export default function Home() {
           />
         </View>
 
-        {/* People Recommendations */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>People You May Want to Work With</Text>
-          <FlatList
-            data={people}
-            renderItem={renderPerson}
-            keyExtractor={(item) => item.id}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.horizontalList}
-          />
-        </View>
+
 
         {/* Activity Feed */}
         
@@ -464,23 +730,23 @@ export default function Home() {
         </TouchableOpacity>
         
         <TouchableOpacity 
-          style={[styles.navItem, activeTab === 'teams' ? styles.navItemActive : null]}
+          style={[styles.navItem, activeTab === 'friends' ? styles.navItemActive : null]}
           onPress={() => {
-            setActiveTab('teams');
-            // In real app, this would navigate to teams screen
-            console.log('Navigate to Teams');
+            setActiveTab('friends');
+            // In real app, this would navigate to friends screen
+            console.log('Navigate to Friends');
           }}
         >
-          <AntDesign name="team" size={24} color={activeTab === 'teams' ? '#007AFF' : '#4A5568'} />
-          <Text style={[styles.navLabel, activeTab === 'teams' ? styles.navLabelActive : null]}>Teams</Text>
+          <AntDesign name="user" size={24} color={activeTab === 'friends' ? '#007AFF' : '#4A5568'} />
+          <Text style={[styles.navLabel, activeTab === 'friends' ? styles.navLabelActive : null]}>Friends {friendCount > 0 ? `(${friendCount})` : ''}</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
           style={[styles.navItem, activeTab === 'hackathons' ? styles.navItemActive : null]}
           onPress={() => {
             setActiveTab('hackathons');
-            // In real app, this would navigate to hackathons screen
-            console.log('Navigate to Hackathons');
+            // Show hackathon options modal
+            setShowHackathonOptions(true);
           }}
         >
           <AntDesign name="Trophy" size={24} color={activeTab === 'hackathons' ? '#007AFF' : '#4A5568'} />
@@ -506,6 +772,9 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#F8F9FA',
+  },
+  darkModeSafeArea: {
+    backgroundColor: '#1A202C',
   },
   loadingContainer: {
     flex: 1,
@@ -551,6 +820,111 @@ const styles = StyleSheet.create({
 
   scrollView: {
     flex: 1,
+    backgroundColor: '#F8F9FA',
+  },
+  darkModeScrollView: {
+    backgroundColor: '#1A202C',
+  },
+  darkModeHeader: {
+    backgroundColor: '#2D3748',
+    borderBottomColor: '#4A5568',
+  },
+  darkModeText: {
+    color: '#FFFFFF',
+  },
+  darkModeCard: {
+    backgroundColor: '#2D3748',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  darkModeToggle: {
+    marginRight: 16,
+    padding: 4,
+  },
+  emptyStateContainer: {
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    marginHorizontal: 24,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: '#718096',
+    textAlign: 'center',
+  },
+  viewDetailsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EBF8FF',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 12,
+  },
+  viewDetailsButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#007AFF',
+    marginRight: 8,
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    zIndex: 1000,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: '80%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  darkModeModal: {
+    backgroundColor: '#2D3748',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1A202C',
+  },
+  modalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  darkModeModalOption: {
+    borderBottomColor: '#4A5568',
+  },
+  modalOptionText: {
+    fontSize: 16,
+    marginLeft: 16,
+    color: '#1A202C',
   },
      countdownSection: {
      marginBottom: 20,
@@ -904,4 +1278,4 @@ const styles = StyleSheet.create({
   navLabelActive: {
     fontWeight: '600',
   },
-}); 
+});

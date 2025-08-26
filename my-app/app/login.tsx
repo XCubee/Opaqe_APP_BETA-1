@@ -281,28 +281,6 @@ const LoginScreen = () => {
             </TouchableOpacity>
         </View>
 
-        {/* Divider */}
-        <View style={styles.dividerContainer}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>OR</Text>
-            <View style={styles.dividerLine} />
-        </View>
-
-        {/* Social Logins */}
-        <View style={styles.socialContainer}>
-          <TouchableOpacity style={styles.socialButton} onPress={handleGmailSignIn}>
-            <AntDesign name="google" size={20} color="#333" />
-            <Text style={styles.socialButtonText}>Continue with Gmail</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.socialButton} onPress={handleGitHubSignIn}>
-            <AntDesign name="github" size={20} color="#333" />
-            <Text style={styles.socialButtonText}>Continue with GitHub</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.socialButton} onPress={handleLinkedInSignIn}>
-            <FontAwesome name="linkedin-square" size={20} color="#0077B5" />
-            <Text style={styles.socialButtonText}>Continue with LinkedIn</Text>
-          </TouchableOpacity>
-        </View>
 
       </ScrollView>
     </SafeAreaView>

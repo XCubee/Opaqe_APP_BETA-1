@@ -332,27 +332,7 @@ export default function Onboarding() {
           </View>
         )}
 
-        {/* Start Your Journey Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Start Your Journey</Text>
-          <TouchableOpacity style={styles.socialButton}>
-            <AntDesign name="google" size={20} color="#333" />
-            <Text style={styles.socialButtonText}>Continue with Gmail</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.socialButton}>
-            <AntDesign name="github" size={20} color="#333" />
-            <Text style={styles.socialButtonText}>Continue with GitHub</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.socialButton}>
-            <FontAwesome name="linkedin-square" size={20} color="#0077B5" />
-            <Text style={styles.socialButtonText}>Continue with LinkedIn</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.socialButton}>
-            <MaterialIcons name="email" size={20} color="#333" />
-            <Text style={styles.socialButtonText}>Continue with Email</Text>
-          </TouchableOpacity>
-          <Text style={styles.importText}>Or import your LinkedIn profile</Text>
-        </View>
+     
 
         {/* Tell Us About Yourself Section */}
         <View style={styles.section}>
